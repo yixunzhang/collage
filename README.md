@@ -12,19 +12,23 @@ sudo apt-get install -y python3 python3-dev python3-setuptools gcc libtinfo-dev 
 pip3 install --user numpy decorator attrs tornado psutil xgboost cloudpickle pytest
 ```
 
-2. Create build directory and go to build directory
+2. Install backends (e.g., cuDNN, MKL,...). 
+* For cuDNN, install [front-end library](https://github.com/NVIDIA/cudnn-frontend) as well (commit 360d6e7164dfb7c802493fd1c0464f0d815b852a, tag: v0.1).
+
+
+3. Create build directory and go to build directory
 ```
 mkdir tvm/build && cd tvm/build
 ```
-3. Prepare `cmake` configuration file. Make sure backend libaries of interest are built together. We provide cmake config that we used for our GPU/CPU experiments (`config.cmake.gpu`, `config.cmake.cpu`) in `tvm/cmake/`. Users may copy it to their build directory and rename it to `config.cmake`
+4. Prepare `cmake` configuration file. Make sure backend libaries of interest are built together. We provide cmake config that we used for our GPU/CPU experiments (`config.cmake.gpu`, `config.cmake.cpu`) in `tvm/cmake/`. Users may copy it to their build directory and rename it to `config.cmake`
  ```
  cp ../cmake/config.cmake.gpu config.cmake
  ```
-4. Run `cmake` and `make`
+5. Run `cmake` and `make`
 ```
 cmake .. && make -j$(nproc)
 ```
-5. Declare following environment variables
+6. Declare following environment variables
 ```
 export COLLAGE_HOME=/path/to/collage/repo
 export COLLAGE_TVM_HOME=${COLLAGE_HOME}/tvm
