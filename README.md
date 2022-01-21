@@ -13,7 +13,7 @@ pip3 install --user numpy decorator attrs tornado psutil xgboost cloudpickle pyt
 ```
 
 2. Install backends (e.g., cuDNN, MKL,...). 
-* For cuDNN, install [front-end library](https://github.com/NVIDIA/cudnn-frontend) as well (commit 360d6e7164dfb7c802493fd1c0464f0d815b852a, tag: v0.1).
+* For cuDNN, install [front-end library](https://github.com/NVIDIA/cudnn-frontend) (commit 360d6e7164dfb7c802493fd1c0464f0d815b852a, tag: v0.1)
 
 
 3. Create build directory and go to build directory
@@ -40,7 +40,7 @@ For more details, please reference [TVM installation guide](https://tvm.apache.o
 # Demo
 Install the following dependencies for deep learning models used for demo.
 ```
-pip3 install --user torch torchvision tqdm onnx onnxruntime
+pip3 install --user torch torchvision tqdm protobuf onnx onnxruntime opencv-python
 ```
 
 We provide two demos (`demo_performance.py`, `demo_customization.py`) under `demo/`. 
