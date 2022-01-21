@@ -37,10 +37,16 @@ export PYTHONPATH=${COLLAGE_TVM_HOME}/python:${COLLAGE_HOME}/python:${PYTHONPATH
 
 For more details, please reference [TVM installation guide](https://tvm.apache.org/docs/install/index.html)
 
+7. Install Collage dependencies
+```
+pip3 install --user graphviz bitarray deap pandas
+```
+
+
 # Demo
 Install the following dependencies for deep learning models used for demo.
 ```
-pip3 install --user torch torchvision tqdm protobuf onnx onnxruntime opencv-python
+pip3 install --user torch==1.7.1 torchvision==0.8.2 tqdm protobuf onnx onnxruntime opencv-python
 ```
 
 We provide two demos (`demo_performance.py`, `demo_customization.py`) under `demo/`. 
