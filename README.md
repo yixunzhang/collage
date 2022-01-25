@@ -41,6 +41,11 @@ For more details, please reference [TVM installation guide](https://tvm.apache.o
 ```
 pip3 install --user graphviz bitarray deap pandas
 ```
+If you face issues, try
+```
+pip3 install --upgrade protobuf
+sudo apt-get install graphviz
+```
 
 
 # Demo

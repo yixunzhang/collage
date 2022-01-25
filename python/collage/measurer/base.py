@@ -2,6 +2,7 @@ import logging
 import sys
 from collage.utils import (is_data_tensor)
 import numpy as np
+from collage.utils import printe
 
 # only collect results whose standard deviation is below this
 MAX_STD_MEASURE_RTX = 5E-04
