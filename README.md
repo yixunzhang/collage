@@ -60,10 +60,10 @@ For the best result, it is highly recommend to create the tuning log by using `a
 * As Collage uses TVM as its code generator, it cannot support backends that TVM is unable to build. Tested backends are
   * TVM w/o tuning
   * TVM w/ AutoTVM
-  * cuDNN
-  * cuBLAS
-  * TensorRT
-  * MKL
+  * cuDNN v8.0.5
+  * cuBLAS v11.3.0
+  * TensorRT v7.2.2
+  * MKL 
   * DNNL
 * Since Collage is essentially a profile-guided search, variance in the measurement may affect the final backend placement. For the best result, multiple runs are highly recommended. 
 * Due to some issues in the implementation, current evolutionary search only supports network implemented in `get_network_from_torch()`. If an user want to try new network, the network must be implemented within this function.
