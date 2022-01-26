@@ -14,7 +14,7 @@ from .baselines.pytorch.resnets_3d import resnet50_3d
 from .baselines.pytorch.mobilenetv2 import mobilenet_v2
 from .baselines.pytorch.dcgan import DCGAN
 from .baselines.pytorch.yolov3 import YoloV3
-
+from .baselines.pytorch.gpt2 import get_gpt2_model
 import logging
 import numpy as np
 
@@ -31,7 +31,11 @@ NETWORK_TO_TORCH_MODEL = {
     "resnet50_3d": resnet50_3d,
     "mobilenet_v2": mobilenet_v2,
     "dcgan": DCGAN,
-    "yolov3": YoloV3
+    "yolov3": YoloV3,
+
+    # Multiple input models
+    # Note that it requires some code changes when evaluating performance
+    "gpt2":get_gpt2_model(),
 }
 
 
@@ -41,7 +45,11 @@ def get_torch_input_data(name, batch_size):
     assert len(shape_dict) == 1
     for shape in shape_dict.values():
         input_shape = tuple(shape)
-    input_data = torch.from_numpy(np.random.uniform(-1, 1, size=input_shape).astype("float32"))
+
+    if name == "gpt2":
+        input_data = torch.from_numpy(np.random.randint(0,100, size=input_shape).astype("int32"))
+    else:
+        input_data = torch.from_numpy(np.random.uniform(-1, 1, size=input_shape).astype("float32"))
 
     return input_data
 
