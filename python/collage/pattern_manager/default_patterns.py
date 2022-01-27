@@ -128,6 +128,12 @@ relayop_to_varnames = {
   "sqrt": ["data"],
   "variance": ["data", "data"],
   "mean": ["data"],
+
+  # GPT2
+  "power": ["data", "data"],
+  "where": ["data", "data", "data"],
+  "cast": ["data"],
+  "take": ["data", "data"]
 }
 
 

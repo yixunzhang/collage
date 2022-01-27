@@ -23,7 +23,17 @@ def setup_mod_inputs(mod):
     if is_data_tensor(input):
       input_shape = input.asnumpy().shape
       logging.info(f"Data shape: {i}, {input_shape}")
-      mod.set_input(i, np.random.uniform(-1, 1, size=input_shape).astype("float32"))
+
+      if input.dtype == "float32":
+        mod.set_input(i, np.random.uniform(-1, 1, size=input_shape).astype("float32"))
+      elif input.dtype == "uint8":
+        mod.set_input(i, np.random.randint(0,1, size=input_shape).astype("uint8")) 
+      elif input.dtype.startswith("int"):
+        mod.set_input(i, np.random.randint(0,100, size=input_shape).astype(input.dtype))
+      else:
+        print(dir(input), input.dtype)
+        assert 0
+        mod.set_input(i, np.random.randint(0,100, size=input_shape).astype("long"))
 
 
 # Raw performance numbers vary significantly depending on the hardware. 

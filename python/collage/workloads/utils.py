@@ -81,7 +81,7 @@ WORKLOADS_DIC = {
               8: {"input0": [8, 100]},
               16: {"input0": [16, 100]}},
     "yolov3": {1: {"input0": [1,3,416,416]}},
-    "gpt2":{1: {"input0":[1, 30]}}, # 1 means # of sentences / 30 means # of words.
+    "gpt2":{1: {"input0":[1, 1024]}}, # 1 means # of sentences / 1024 means # of words.
 }
 
 def create_relay_workload(expr):

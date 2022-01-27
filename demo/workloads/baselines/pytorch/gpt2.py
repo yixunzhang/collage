@@ -9,5 +9,4 @@ from tvm import relay
 def get_gpt2_model():
     configuration = GPT2Config(torchscript=True)
     model = GPT2Model(configuration)
-    model.eval()
     return model

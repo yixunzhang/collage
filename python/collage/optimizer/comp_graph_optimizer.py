@@ -60,14 +60,16 @@ def extract_subgraph(expr, pattern):
   def helper(expr, depth, relay_pattern):
     assert relay_pattern.match(expr), f"(relay_pattern, expr) = ({relay_pattern}, {expr.op}, {expr.args[0].op})"
     # Warning(@Soo): To resolve NasNet-A corner case, e.g., addition of same avgpool2d results
-    cur_checked_type = expr.checked_type
     expr = get_expr(expr)
 
     if isinstance(relay_pattern, WildcardPattern):
       # The above issue with avgpool2d is resolved!
       # The problem is because checked_type is updated when generating new expr.
       # We resolved it by saving checked_type from old expression
-      ret = relay.var("data", cur_checked_type)
+      if is_call_node(expr) or is_tuple_node(expr) or is_constant_node(expr):
+        ret = relay.var("data", expr.checked_type)
+      else:
+        ret = relay.var("data", expr.type_annotation)
       return ret
     elif isinstance(relay_pattern, ConstantPattern):
       return expr
@@ -125,7 +127,7 @@ def extract_subgraph(expr, pattern):
       return new_expr
 
     elif is_tuplegetitem_node(expr):
-      tuple_value = helper(expr.tuple_value, depth, relay_pattern.tuple_value)
+      tuple_value = helper(expr.tuple_value, depth, relay_pattern.tuple)
       new_expr = tvm.relay.expr.TupleGetItem(tuple_value, expr.index)
       set_old_expr_to_new(expr, new_expr)
       return new_expr
@@ -138,7 +140,6 @@ def extract_subgraph(expr, pattern):
 
     else:
       raise Exception(f"Expr type not implemented {type(expr)}")
-
   return helper(expr, depth, relay_pattern)
 
 # given a pattern and a relay expr matching that pattern, return the cheapest backend operator

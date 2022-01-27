@@ -96,12 +96,15 @@ def name_relay_pattern(pattern, idMap = None, cnt = 0):
 
     if goDeeper:
         name = node_str + "["
-        for i, child in enumerate(children):
-            if i > 0:
-                name += ", "
-            _name, _cnt = name_relay_pattern(child, idMap, cnt)
-            name += _name
-            cnt = _cnt
+        if children is None:
+            name += "None"
+        else:
+            for i, child in enumerate(children):
+                if i > 0:
+                    name += ", "
+                _name, _cnt = name_relay_pattern(child, idMap, cnt)
+                name += _name
+                cnt = _cnt
 
         name += "]"
     else:

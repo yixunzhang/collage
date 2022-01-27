@@ -41,7 +41,7 @@ def check_path(src, node, fcheck, path = [], paths = []):
         if is_tuple_node(node):
             children = node.fields
         elif is_tuplegetitem_node(node):
-            children = [ node.tuple ]
+            children = [ node.tuple_value ]
         elif is_call_node(node):
             children = node.args
         else:
@@ -61,9 +61,9 @@ def generate_relay_pattern_node(node):
     if is_tuple_node(node):
         return "tuple", len(node.fields)
     elif is_tuplegetitem_node(node):
-        logging.info(node, dir(node))
-        assert 0
-        return is_tuple_get_item, 2
+        #print(node, dir(node), node.tuple_value)
+        #is_tuple_get_item, 2
+        return "tuplegetitem", 1
     elif is_call_node(node):
         return is_op(node.op.name), len(node.args)
     elif is_constant_node(node):
@@ -109,7 +109,7 @@ def build_pattern_with_map(src, node, nodeToPatternMap):
         elif is_tuple_node(node):
             children = node.fields
         elif is_tuplegetitem_node(node):
-            children = [ node.tuple ]
+            children = [ node.tuple_value ]
         elif is_call_node(node):
             children = node.args
         else:
@@ -139,12 +139,15 @@ def generate_relay_pattern(src, sink, paths = None, cur_pattern_type = None, nod
         # @sunggg: hacky solution to deal with tuple
         if rpattern == "tuple":
             return is_tuple(operands), get_op_pattern(sink), 1
+        elif rpattern == "tuplegetitem":
+            # is_tuple(None): match with any inputs
+            return is_tuple_get_item(is_tuple(None)), get_op_pattern(sink), 1
         else: 
             return rpattern(*operands), get_op_pattern(sink), 1
 
     else:
         # Handle multiple nodes
-        # Create pattern node for all nodes in paths
+        # Create pattern node for all nodes in paths (sink~src)
         cnt = 0
         nodeToPatternMap = dict()
         for path in paths:
@@ -173,6 +176,8 @@ def generate_relay_pattern(src, sink, paths = None, cur_pattern_type = None, nod
         # @sunggg: hacky solution to deal with tuple
         if pnode == "tuple":
             nodeToPatternMap[src] = (is_tuple(operands), 0) # it's zero cause we already handled.    
+        elif pnode == "tuplegetitem":
+            nodeToPatternMap[src] = (is_tuple_get_item(is_tuple(None)), 0) # it's zero cause we already handled.    
         else:
             nodeToPatternMap[src] = (pnode(*operands), 0) # it's zero cause we already handled.
         rpattern = build_pattern_with_map(src, sink, nodeToPatternMap)
@@ -268,7 +273,7 @@ class TVM_PatternRule(BasePatternRule):
                     if is_tuple_node(node):
                         children = node.fields
                     elif is_tuplegetitem_node(node):
-                        children = [ node.tuple ]
+                        children = [ node.tuple_value ]
                     elif is_call_node(node):
                         children = node.args
                     else:
@@ -382,7 +387,7 @@ class TRT_PatternRule(BasePatternRule):
                     if is_tuple_node(node):
                         children = node.fields
                     elif is_tuplegetitem_node(node):
-                        children = [ node.tuple ]
+                        children = [ node.tuple_value ]
                     elif is_call_node(node):
                         children = node.args
                     else:
@@ -458,7 +463,7 @@ class TRT_PatternRule(BasePatternRule):
             elif isinstance(cur, TuplePattern):
                 q.extend(cur.fields)
             elif isinstance(cur, TupleGetItemPattern):
-                q.append(cur.tuple_value)
+                q.append(cur.tuple)
             else:
                 raise Exception(f"Unexpected expression type, {type(cur)}")
 

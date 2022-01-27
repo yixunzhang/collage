@@ -84,7 +84,10 @@ def extract_input_shape(node, input_shape_arr, memo):
 
   # Update expensive operator stats
   if is_var_node(node):
-    input_shape_arr.append(convert_shape_imm_to_tuple(node.type_annotation.shape))
+    if isinstance(node.type_annotation, tvm.ir.type.TupleType):
+      input_shape_arr.append(node.type_annotation)
+    else:
+      input_shape_arr.append(convert_shape_imm_to_tuple(node.type_annotation.shape))
   elif is_constant_node(node):
     input_shape_arr.append(convert_shape_imm_to_tuple(node.data.shape))
 
@@ -326,6 +329,9 @@ def serialize_subgraph(subgraph):
 def get_op_pattern(expr):
     if is_tuple_node(expr):
         return 7 # kTuple: hardcoded for now
+    elif is_tuplegetitem_node(expr):
+        # @Sung: This might not be correct.
+        return 7
     elif is_call_node(expr):
         return expr.op.get_attr("TOpPattern")
     elif isinstance(expr, tvm.ir.op.Op):

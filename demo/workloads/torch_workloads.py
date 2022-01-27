@@ -14,7 +14,7 @@ from .baselines.pytorch.resnets_3d import resnet50_3d
 from .baselines.pytorch.mobilenetv2 import mobilenet_v2
 from .baselines.pytorch.dcgan import DCGAN
 from .baselines.pytorch.yolov3 import YoloV3
-
+from .baselines.pytorch.gpt2 import get_gpt2_model
 import logging
 import numpy as np
 
@@ -31,7 +31,11 @@ NETWORK_TO_TORCH_MODEL = {
     "resnet50_3d": resnet50_3d,
     "mobilenet_v2": mobilenet_v2,
     "dcgan": DCGAN,
-    "yolov3": YoloV3
+    "yolov3": YoloV3,
+    
+      # Multiple input models
+    # Note that it requires some code changes when evaluating performance
+    "gpt2":get_gpt2_model,
 }
 
 
@@ -41,7 +45,11 @@ def get_torch_input_data(name, batch_size):
     assert len(shape_dict) == 1
     for shape in shape_dict.values():
         input_shape = tuple(shape)
-    input_data = torch.from_numpy(np.random.uniform(-1, 1, size=input_shape).astype("float32"))
+
+    if name == "gpt2":
+        input_data = torch.from_numpy(np.random.randint(0,100, size=input_shape).astype("long"))
+    else:
+        input_data = torch.from_numpy(np.random.uniform(-1, 1, size=input_shape).astype("float32"))
 
     return input_data
 
@@ -59,14 +67,17 @@ def load_torch_model_from_pth(name, batch_size):
     return scripted_model
 
 def load_torch_model_from_code(name, batch_size):
+    input_data = get_torch_input_data(name, batch_size)
     # Get the model
     if name == "nasrnn":
         model = NETWORK_TO_TORCH_MODEL[name](is_gpu=False)#.cuda()
+    #elif name == "gpt2":
+    #    model = NETWORK_TO_TORCH_MODEL[name](input_data)#.cuda()
     else:
         model = NETWORK_TO_TORCH_MODEL[name]()  # .cuda()
 
     model.eval()
-    input_data = get_torch_input_data(name, batch_size)
+    
 
     # print(f"Input data: {input_shape}")
     scripted_model = torch.jit.trace(model.cpu(), input_data).eval()
