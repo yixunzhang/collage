@@ -2,7 +2,7 @@ import os
 import tvm
 from tvm import relay, autotvm
 from tvm.relay import transform
-
+from collage.analysis import visualize_backend_placement
 
 EXTERNAL_COMPILERS = ['tensorrt', 'dnnl']
 XEON_BUILD_TARGET = 'llvm -mcpu=skylake-avx512'
@@ -34,26 +34,32 @@ def cg_TensorRT(mod, target, params, **kwargs):
     from tvm.relay.build_module import bind_params_by_name
     from tvm.relay.op.contrib.tensorrt import RemoveDropoutPass
 
+    use_implicit_batch = False
+    if "use_implicit_batch" in kwargs:
+        use_implicit_batch = kwargs["use_implicit_batch"]
+
     config = {
-        "use_implicit_batch": True,
+        "use_implicit_batch": use_implicit_batch,
         "max_workspace_size": 1 << 30,
         "remove_no_mac_subgraphs": False,
     }
-    
+
+    print("Use implicit batch config: ", use_implicit_batch)
+
     if params:
         mod["main"] = bind_params_by_name(mod["main"], params)
     seq = tvm.transform.Sequential(
         [
             transform.InferType(),
-            RemoveDropoutPass(),
-            transform.RemoveUnusedFunctions(),
-            transform.ConvertLayout(
-                {
-                    "nn.conv2d": ["NCHW", "default"],
-                    "nn.conv3d": ["NCDHW", "default"],
-                    "nn.conv2d_transpose": ["NCHW", "default"],
-                }
-            ),
+            #RemoveDropoutPass(),
+            #transform.RemoveUnusedFunctions(),
+            #transform.ConvertLayout(
+            #    {
+            #        "nn.conv2d": ["NCHW", "default"],
+            #        "nn.conv3d": ["NCDHW", "default"],
+            #        "nn.conv2d_transpose": ["NCHW", "default"],
+            #    }
+            #),
             transform.FoldConstant(),
             transform.AnnotateTarget("tensorrt"),
             transform.MergeCompilerRegions(),
@@ -65,7 +71,7 @@ def cg_TensorRT(mod, target, params, **kwargs):
     # Annotate
     with tvm.transform.PassContext(opt_level=3, config={"relay.ext.tensorrt.options": config}):
         mod = seq(mod)
-    
+
     # We confirm that TVM can't pass conv2d to TensorRT if it's winograd without wt
     with tvm.transform.PassContext(opt_level=3, config={'relay.ext.tensorrt.options': config}):
         lib = relay.build(mod, target=target, params=params)

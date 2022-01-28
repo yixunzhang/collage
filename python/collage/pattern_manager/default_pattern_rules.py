@@ -141,7 +141,7 @@ def generate_relay_pattern(src, sink, paths = None, cur_pattern_type = None, nod
             return is_tuple(operands), get_op_pattern(sink), 1
         elif rpattern == "tuplegetitem":
             # is_tuple(None): match with any inputs
-            return is_tuple_get_item(is_tuple(None)), get_op_pattern(sink), 1
+            return is_tuple_get_item(wildcard()), get_op_pattern(sink), 1
         else: 
             return rpattern(*operands), get_op_pattern(sink), 1
 
@@ -177,7 +177,7 @@ def generate_relay_pattern(src, sink, paths = None, cur_pattern_type = None, nod
         if pnode == "tuple":
             nodeToPatternMap[src] = (is_tuple(operands), 0) # it's zero cause we already handled.    
         elif pnode == "tuplegetitem":
-            nodeToPatternMap[src] = (is_tuple_get_item(is_tuple(None)), 0) # it's zero cause we already handled.    
+            nodeToPatternMap[src] = (is_tuple_get_item(wildcard()), 0) # it's zero cause we already handled.    
         else:
             nodeToPatternMap[src] = (pnode(*operands), 0) # it's zero cause we already handled.
         rpattern = build_pattern_with_map(src, sink, nodeToPatternMap)
@@ -213,7 +213,7 @@ class DefaultPatternGenerator(BasePatternGenerator):
                         cur_type = cur_type, 
                         num_ops = num_ops,
                     )
-                if len(ops_to_fuse):
+                if len(ops_to_fuse) and not isinstance(src, tvm.relay.expr.TupleGetItem):
                     fusion_pattern, cur_type, num_ops = generate_relay_pattern(src, sink, ops_to_fuse, cur_type, nodeToPatternMap)
                 
                     # Append identified pattern
@@ -249,9 +249,13 @@ class TVM_PatternRule(BasePatternRule):
             raise Exception("This class should be a singleton!")
         TVM_PatternRule.__instance = self
 
+    
     @staticmethod
     def op_rule(expr):
-        return get_op_pattern(expr) != TVM_PatternRule.optype2enum["kOpaque"]
+        # @Sung: nn.softmax op type seems kOpaque...? Should revisit this.
+        # - update: It seems like it is fixed in the latest tvm main. 
+        #           Change the pattern type accordingly, but not sure this is enough change. 
+        return (get_op_pattern(expr) != TVM_PatternRule.optype2enum["kOpaque"])
     
     @staticmethod
     def fusion_rule(src, sink, cur_type, num_ops):

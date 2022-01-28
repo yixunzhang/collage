@@ -37,14 +37,14 @@ def visualize_network_debug(relay_expr, name):
 
 def apply_tensorrt_op(mod):
     logging.info("Applying TensorRT op pass")
-
+    from tvm.relay.op.contrib.tensorrt import RemoveDropoutPass
     # Get best op match info
     fn_body = mod["main"].body
     # Annotating expression
     target_str = "tensorrt"
 
     # Do merge and partition pass
-    use_implicit_batch = True
+    use_implicit_batch = False
     remove_no_mac_subgraphs = False
     max_workspace_size = 1 << 30
     version = None
@@ -71,6 +71,17 @@ def apply_tensorrt_op(mod):
     # Warning(@Soo): I assume this is only useful when folding constant
     seq = tvm.transform.Sequential(
         [
+            transform.InferType(),
+            #RemoveDropoutPass(),
+            #transform.RemoveUnusedFunctions(),
+            #transform.ConvertLayout(
+            #    {
+            #        "nn.conv2d": ["NCHW", "default"],
+            #        "nn.conv3d": ["NCDHW", "default"],
+            #        "nn.conv2d_transpose": ["NCHW", "default"],
+            #    }
+            #),
+            transform.FoldConstant(),
             transform.AnnotateTarget("tensorrt"),
             transform.MergeCompilerRegions(),
             transform.PartitionGraph(),

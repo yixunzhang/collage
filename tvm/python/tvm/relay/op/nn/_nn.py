@@ -39,17 +39,17 @@ reg.register_pattern("nn.relu", OpPattern.ELEMWISE)
 
 # softmax
 reg.register_strategy("nn.softmax", strategy.softmax_strategy)
-reg.register_pattern("nn.softmax", OpPattern.OPAQUE)
+reg.register_pattern("nn.softmax", OpPattern.OUT_ELEMWISE_FUSABLE) # This version used OPAQUE instead
 
 
 # fast softmax
 reg.register_strategy("nn.fast_softmax", strategy.fast_softmax_strategy)
-reg.register_pattern("nn.fast_softmax", OpPattern.OPAQUE)
+reg.register_pattern("nn.fast_softmax", OpPattern.OUT_ELEMWISE_FUSABLE)
 
 
 # log_softmax
 reg.register_schedule("nn.log_softmax", strategy.schedule_log_softmax)
-reg.register_pattern("nn.log_softmax", OpPattern.OPAQUE)
+reg.register_pattern("nn.log_softmax", OpPattern.OUT_ELEMWISE_FUSABLE)
 
 
 @reg.register_legalize("nn.dense")

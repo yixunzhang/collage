@@ -31,6 +31,7 @@ from .dp_table import (
 from .ordered_pattern_matcher import OrderedPatternMatcher
 from collage.pattern_manager.default_patterns import relayop_to_varnames
 
+from collage.analysis import visualize_backend_placement
 import logging
 
 # extract the subgraph of the expr that matches the pattern (only the top layers of the recursive relay expr).
@@ -62,6 +63,7 @@ def extract_subgraph(expr, pattern):
     # Warning(@Soo): To resolve NasNet-A corner case, e.g., addition of same avgpool2d results
     expr = get_expr(expr)
 
+    # assert (type(expr) is not tvm.ir.type.TupleType)
     if isinstance(relay_pattern, WildcardPattern):
       # The above issue with avgpool2d is resolved!
       # The problem is because checked_type is updated when generating new expr.
@@ -189,7 +191,7 @@ def get_optimal_backend_pattern(pattern_registry, expr, pattern, given_backends 
     # Exceptional cases to block
     # - 1) tensorrt_0-Op(add)[*, *] - If the add is the sole operator, then TensorRT has an issue to execute it
     if cheapest_bp == 'tensorrt_0-Op(add)[*, *]' and len(expr.checked_type.shape) != 4:
-      cheapest_bp = f'tvm-{pattern.get_name()}' # fallback op name
+      cheapest_bp = f'autotvm-{pattern.get_name()}' # fallback op name
 
   if min_cost == float('inf') and not need_tvm_fallback_ops:
     raise Exception("No corresponding backend operators / or backend op errors out (e.g., CuDNN conv_bias_relu)")
@@ -267,7 +269,6 @@ class CompGraphOptimizer:
         # Warning(@Soo): We need to discard TVM fallback operator fusion patterns that include ops supported by
         # backend in a list. It is currently dealt by the following codes.
         fallback_backend_pats = None
-
         while not frontier_queue.empty():
             # Facilitate the debugging process
             self._pattern_registry.save_to_log()
@@ -282,6 +283,7 @@ class CompGraphOptimizer:
 
             n_match_frontier = 0
 
+            num_matches = 0
             for backend_pattern in self._pattern_registry.all_backend_patterns:
                 pat = backend_pattern.get_pattern()
                 backend = backend_pattern.get_backend()
@@ -307,17 +309,20 @@ class CompGraphOptimizer:
                     if best_backend_pattern_name is None:
                         continue
 
+                    num_matches += 1
                     # Extract match information; refer to detailed explanation in the MatchInfoExtractor
                     matched_nodes, match_dic, new_frontiers = extractor.extract(f_expr, pat.get_relay_pattern(), best_backend_pattern_name)
 
                     dp_table.update(matched_nodes, match_dic, best_backend_pattern_name, min_cost, new_frontiers)
-                    # print(dp_table._dp_table)
 
                     # Add new frontiers to the queue
                     prev_qsize = frontier_queue._frontiers.qsize()
                     frontier_queue.put(new_frontiers)
                     n_match_frontier += frontier_queue._frontiers.qsize() - prev_qsize
-
+            
+            if num_matches == 0:
+              print(f_expr, type(f_expr))
+              assert 0
 
         # Assign backend operator annotation (group_id + backend_pattern_name) to Relay expr (backend attribute)
         optimized_match = dp_table.assign_backend_pattern_to_expr()

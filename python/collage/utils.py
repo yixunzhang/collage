@@ -75,6 +75,15 @@ def is_data_tensor(ndarr):
 def convert_shape_imm_to_tuple(shape_imm):
   return tuple(map(lambda x: x.value, shape_imm))
 
+def convert_tupled_shape_imm_to_tuple(tupled):
+  ret = []
+  for field in tupled.fields:
+    if isinstance(field, tvm.ir.type.TupleType):
+      ret.append(convert_tupled_shape_imm_to_tuple(field))
+    else:
+      ret.append(convert_shape_imm_to_tuple(field.shape))
+  return tuple(ret)
+
 def extract_input_shape(node, input_shape_arr, memo):
   # Prevent it from vising same node more than once
   if node in memo:
@@ -85,7 +94,7 @@ def extract_input_shape(node, input_shape_arr, memo):
   # Update expensive operator stats
   if is_var_node(node):
     if isinstance(node.type_annotation, tvm.ir.type.TupleType):
-      input_shape_arr.append(node.type_annotation)
+      input_shape_arr.append(convert_tupled_shape_imm_to_tuple(node.type_annotation))
     else:
       input_shape_arr.append(convert_shape_imm_to_tuple(node.type_annotation.shape))
   elif is_constant_node(node):
@@ -242,8 +251,7 @@ def extract_attrs(expr):
 
   def helper(expr, attrs):
     if is_call_node(expr):
-      attr_vals = get_attr_vals(expr)
-      # print(attr_vals)
+      attr_vals = get_attr_vals(expr)      
       attrs += attr_vals
       children = list(filter(is_call_or_tuplegetitem_node, expr.args))
       if len(children) == 0:
@@ -264,7 +272,9 @@ def extract_attrs(expr):
         helper(child, attrs)
 
     elif is_var_node(expr):
-      raise Exception("Should not reach var node")
+      print(expr)
+      return None
+      #raise Exception("Should not reach var node")
 
     else:
       raise Exception("Expr type not implemented")

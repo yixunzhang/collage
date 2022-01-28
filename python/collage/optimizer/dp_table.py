@@ -146,7 +146,7 @@ class MatchInfoExtractor:
             self.visit_expr(arg, pattern.fields[a_idx])
 
     def visit_expr_tuplegetitem(self, expr, pattern):
-        self.visit_expr(expr.tuple_value, pattern.tuple_value)
+        self.visit_expr(expr.tuple_value, pattern.tuple)
 
     def visit_expr_call(self, expr, pattern):
         op, args, attrs, type_args, span = expr.op, expr.args, expr.attrs, expr.type_args, expr.span

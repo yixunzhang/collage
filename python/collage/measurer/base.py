@@ -76,10 +76,13 @@ def measure(ftimer, target, *args):
     # Plus, there is also a gap between op perf and real perf in network inference, specifically
     # for such light-weighted kernels, e.g., TensorRT op is on par with AutoTVM in op perf,
     # but it is always worse than AutoTVM in actual network inference runtime
-    while True:
+    max_trials = 50
+    i = 0
+    while i<max_trials:
         perfs = np.array(ftimer(*args).results) * 1000  # convert to millisecond
         mean_perf, std_perf = np.mean(perfs), np.std(perfs)
         logging.info(f"Mean, std of perf : {mean_perf}, {std_perf}")
+        i += 1
 
         # If mean_perf is more than 1 ms, then we should reduce threshold not to take too long,
         # e.g., BERT or Conv3D ops

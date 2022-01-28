@@ -133,7 +133,8 @@ relayop_to_varnames = {
   "power": ["data", "data"],
   "where": ["data", "data", "data"],
   "cast": ["data"],
-  "take": ["data", "data"]
+  "take": ["data", "data"],
+  "split": ["data"],
 }
 
 
