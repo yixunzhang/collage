@@ -44,8 +44,6 @@ def cg_TensorRT(mod, target, params, **kwargs):
         "remove_no_mac_subgraphs": False,
     }
 
-    print("Use implicit batch config: ", use_implicit_batch)
-
     if params:
         mod["main"] = bind_params_by_name(mod["main"], params)
     seq = tvm.transform.Sequential(

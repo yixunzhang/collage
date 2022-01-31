@@ -51,7 +51,7 @@ sudo apt-get install graphviz
 # Demo
 Install the following dependencies for deep learning models used for demo.
 ```
-pip3 install --user torch==1.7.1 torchvision==0.8.2 tqdm protobuf onnx onnxruntime opencv-python
+pip3 install --user torch==1.7.1 torchvision==0.8.2 tqdm protobuf onnx onnxruntime opencv-python transformers
 ```
 
 We provide two demos (`demo_performance.py`, `demo_customization.py`) under `demo/`. 
