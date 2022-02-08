@@ -1,22 +1,34 @@
 from tvm import relay
 import torch
-
 import os
 import copy
-
-from .utils import WORKLOADS_DIC
-from .baselines.pytorch.resnets import resnet50, resnext50_32x4d, resnet_block
-from .baselines.pytorch.nasnet_a import NASNetA
-from .baselines.pytorch.nasrnn import NASRNN
-from .baselines.pytorch.bert import BERT
-from .baselines.pytorch.bert_full import BERTFULL
-from .baselines.pytorch.resnets_3d import resnet50_3d
-from .baselines.pytorch.mobilenetv2 import mobilenet_v2
-from .baselines.pytorch.dcgan import DCGAN
-from .baselines.pytorch.yolov3 import YoloV3
-from .baselines.pytorch.gpt2 import get_gpt2_model
 import logging
 import numpy as np
+
+if __name__ == '__main__':
+    from utils import WORKLOADS_DIC
+    from baselines.pytorch.resnets import resnet50, resnext50_32x4d, resnet_block
+    from baselines.pytorch.nasnet_a import NASNetA
+    from baselines.pytorch.nasrnn import NASRNN
+    from baselines.pytorch.bert import BERT
+    from baselines.pytorch.bert_full import BERTFULL
+    from baselines.pytorch.resnets_3d import resnet50_3d
+    from baselines.pytorch.mobilenetv2 import mobilenet_v2
+    from baselines.pytorch.dcgan import DCGAN
+    from baselines.pytorch.yolov3 import YoloV3
+    from baselines.pytorch.gpt2 import get_gpt2_model
+else:
+    from .utils import WORKLOADS_DIC
+    from .baselines.pytorch.resnets import resnet50, resnext50_32x4d, resnet_block
+    from .baselines.pytorch.nasnet_a import NASNetA
+    from .baselines.pytorch.nasrnn import NASRNN
+    from .baselines.pytorch.bert import BERT
+    from .baselines.pytorch.bert_full import BERTFULL
+    from .baselines.pytorch.resnets_3d import resnet50_3d
+    from .baselines.pytorch.mobilenetv2 import mobilenet_v2
+    from .baselines.pytorch.dcgan import DCGAN
+    from .baselines.pytorch.yolov3 import YoloV3
+    from .baselines.pytorch.gpt2 import get_gpt2_model
 
 NETWORK_TO_TORCH_MODEL = {
     "resnet_block": resnet_block,
@@ -107,9 +119,42 @@ def get_network_from_torch(name, batch_size):
     logging.info(f"(Loaded network, Shape array) = ({name}, {shape_arr})")
     return mod, params, shape_dict, None # we don't need output shape
 
+
+# NOTE: Make sure that you executed codes in "baselines/pytorch_new" to have the most recent onnx files
+def export_onnx_network_from_torch(name, batch_size):
+    assert name in WORKLOADS_DIC
+    # if batch_size > 1, we need to think about how to take care of bert and nasrnn
+    # assert batch_size == 1
+
+    # NasRNN and BERT are not ready to deal with more than batch size of 1
+    if name in ["bert", "nasrnn"] and batch_size > 1:
+        raise NotImplementedError("NasRNN and BERT are not ready to deal with more than batch size of 1")
+
+    input_data = get_torch_input_data(name, batch_size)
+    # Get the model
+    if name == "nasrnn":
+        model = NETWORK_TO_TORCH_MODEL[name](is_gpu=False)#.cuda()
+    else:
+        model = NETWORK_TO_TORCH_MODEL[name]()  # .cuda()
+
+    model.eval()
+  
+    torch.onnx.export(model,                 # model being run
+                  input_data,                # model input (or a tuple for multiple inputs)
+                  f"{name}.onnx",            # where to save the model (can be a file or file-like object)
+                  export_params=True,        # store the trained parameter weights inside the model file
+                  opset_version=10,          # the ONNX version to export the model to
+                  do_constant_folding=True,  # whether to execute constant folding for 
+    )
+
+
 def crop_network_from_torch(name, batch_size, post_dfs_order):
     mod, params, shape_dict, _ = get_network_from_torch(name, batch_size)
     expr = ExprCropper(post_dfs_order).crop(mod["main"])
     mod, params = create_relay_workload(expr)
 
     return mod, params, shape_dict, None
+
+
+if __name__ == "__main__":
+    export_onnx_network_from_torch("resnext50_32x4d", 1)
