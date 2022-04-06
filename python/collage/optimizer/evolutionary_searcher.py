@@ -175,7 +175,8 @@ class EvolutionarySearcher:
         except:
             logging.info("Error message from subprocess")
             logging.info(err)
-            raise
+            # raise
+            mean_perf, std_perf = 1000000, 0
 
         return mean_perf, std_perf
 
