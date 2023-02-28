@@ -17,6 +17,31 @@ from torch.nn.parameter import Parameter
 
 torch.backends.cudnn.benchmark = True
 
+
+def measure_model(model, inputs, discard_iter, iterations, msg):
+    times = []
+    with torch.no_grad():
+        for i in tqdm(range(discard_iter + iterations)):
+
+            start = torch.cuda.Event(enable_timing=True)
+            end = torch.cuda.Event(enable_timing=True)
+
+            start.record()
+            model(inputs)
+            end.record()
+
+            # Waits for everything to finish running
+            torch.cuda.synchronize()
+
+            times.append(start.elapsed_time(end))
+
+    total = 0
+    for i in range(discard_iter, len(times)):
+        total += times[i]
+    avg = total / (iterations)
+    print(f"{msg} Average inference time of the last {iterations}  iterations: {avg} ms")
+
+
 NAME = 'bert'
 
 D_MODEL = 1024
@@ -33,21 +58,20 @@ class Attention(nn.Module):
         self.up = Parameter(data = torch.randn( D_MODEL, 4*D_MODEL) * 0.01)
         self.final = Parameter(data = torch.randn( 4*D_MODEL, D_MODEL) * 0.01)
         
-
     def forward(self, x):
         q = torch.matmul(x, self.q)
         k = torch.matmul(x, self.k)
         v = torch.matmul(x, self.v)
 
-        q = torch.reshape(q, (64,16,64)).permute(1,0,2)
-        k = torch.reshape(k, (64,16,64)).permute(1,0,2)
-        v = torch.reshape(v, (64,16,64)).permute(1,0,2)
+        q = q.reshape(64,16,64).permute(1,0,2)
+        k = k.reshape(64,16,64).permute(1,0,2)
+        v = v.reshape(64,16,64).permute(1,0,2)
 
         logits = torch.matmul(q, k)
         output = torch.matmul(logits, v)
 
         output = output.permute(1,0,2)
-        output = torch.reshape(output, (64,1024))
+        output = output.reshape(64,1024)
 
         output = torch.matmul(output, self.up)
         output = self.relu(output)
@@ -75,28 +99,20 @@ if __name__ == "__main__":
     model = BERT().cuda()
     model.eval()
     inputs = torch.randn(64, 1024).cuda()
+    
+    ## PyTorch Time
+    measure_model(model, inputs.clone(), args.discard_iter, args.iterations, "PyTorch")
 
-    times = []
-    with torch.no_grad():
-        for i in tqdm(range(args.discard_iter + args.iterations)):
 
-            start = torch.cuda.Event(enable_timing=True)
-            end = torch.cuda.Event(enable_timing=True)
+    ## TensorRT: torch2trt cannot work due to 
+    from torch2trt import torch2trt
+    inputs_trt = inputs.clone()
+    model_trt = torch2trt(model, [inputs_trt])
+    measure_model(model_trt, inputs_trt, args.discard_iter, args.iterations, "TensorRT-torch2trt")
 
-            start.record()
-            model(inputs)
-            end.record()
-
-            # Waits for everything to finish running
-            torch.cuda.synchronize()
-
-            times.append(start.elapsed_time(end))
-
-    total = 0
-    for i in range(args.discard_iter, len(times)):
-        total += times[i]
-    avg = total / (args.iterations)
-    print("Average inference time of the last " + str(args.iterations) + " iterations: " + str(avg) + " ms")
+    inputs_scripts = inputs.clone()
+    model_script = torch.jit.optimize_for_inference(torch.jit.script(model.eval()))
+    measure_model(model_script, inputs_scripts, args.discard_iter, args.iterations, "TorchScript-optimize_for_inference")
 
     input_shape = [64, 1024]
     input_data = torch.randn(input_shape)
@@ -128,7 +144,6 @@ if __name__ == "__main__":
                       do_constant_folding=False,
                       input_names=input_names, output_names=output_names,
                       training = torch.onnx.TrainingMode.TRAINING,
-                      example_outputs=torch.randn(( 64, 1024)),
                       opset_version=12)
     onnx_model = onnx.load(f"models/{NAME}.onnx")
 
